@@ -1145,15 +1145,18 @@ async function fetchSheetData() {
   try {
     const res  = await fetch(SHEET_URL);
     const text = await res.text();
-    // Strip Google's wrapper: /*O_o*/\ngoogle.visualization.Query.setResponse({...});
     const json = JSON.parse(text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1));
     const rows = json.table.rows;
     if (!rows || rows.length < 2) return null;
 
-    const headers = json.table.cols.map(c => c.label) ;
-    const vals    = rows[1].c.map(c => c ? c.v : null);
-    const data    = {};
-    headers.forEach((h, i) => { data[h] = vals[i]; });
+    // Use first row as headers, second row as values
+    const headerRow = rows[0].c.map(c => c ? c.v : null);
+    const valueRow  = rows[1].c.map(c => c ? c.v : null);
+
+    const data = {};
+    headerRow.forEach((h, i) => {
+      if (h) data[h.toString().trim()] = valueRow[i];
+    });
     return data;
   } catch(e) {
     console.warn("Sheets fetch failed:", e);
